@@ -16,6 +16,24 @@ setInterval(() => {
     numberOfRequestsForUser = {};
 }, 1000)
 
+function rateLimiter(req, res, next){
+    const username = req.headers['user-id'];
+    if(numberOfRequestsForUser[username] === undefined){
+        numberOfRequestsForUser[username] = 1;
+    }
+    else if(numberOfRequestsForUser[username]<5){
+        numberOfRequestsForUser[username]++;
+    }
+    else{
+        return res.status(404).json({
+            message: 'wait for sometime'
+        });
+    }
+    next();
+}
+
+app.use(rateLimiter);
+
 app.get('/user', function(req, res) {
   res.status(200).json({ name: 'john' });
 });
