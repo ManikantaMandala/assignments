@@ -42,13 +42,44 @@ router.post('/signup', async (req, res) => {
 //   Description: Creates a new course.
 //   Input: Headers: { 'username': 'username', 'password': 'password' }, Body: { title: 'course title', description: 'course description', price: 100, imageLink: 'https://linktoimage.com' }
 //   Output: { message: 'Course created successfully', courseId: "new course id" }
-router.post('/courses', adminMiddleware, (req, res) => {
+router.post('/courses', adminMiddleware,async (req, res) => {
     // Implement course creation logic
-    
+    const title = req.body['title'];
+    const description = req.body['description'];
+    const price = req.body['price'];
+    const imageLink = req.body['imageLink'];
+
+    const newCourse = new Course({
+        title: title,
+        description: description,
+        price: price,
+        imageLink: imageLink,
+        published: true
+    });
+    newCourse = await newCourse.save();
+    if(!newCourse){
+        return res.status(500).json({
+            message: 'Internal server error'
+        });
+    }
+    newCourse.then((course)=>{
+        return res.status(200).json({
+            message: 'Course created successfully',
+            CourseId: course.id
+        });
+    });
 });
 
-router.get('/courses', adminMiddleware, (req, res) => {
+// - GET /admin/courses
+//   Description: Returns all the courses.
+//   Input: Headers: { 'username': 'username', 'password': 'password' }
+//   Output: { courses: [ { id: 1, title: 'course title', description: 'course description', price: 100, imageLink: 'https://linktoimage.com', published: true }, ... ] }
+router.get('/courses', adminMiddleware, async (req, res) => {
     // Implement fetching all courses logic
+    const allCourses = await Course.find({published: true});
+    allCourses.then((courses)=>{
+        return res.status(200).json(courses);
+    });
 });
 
 module.exports = router;

@@ -15,13 +15,15 @@ const CourseSchema = new mongoose.Schema({
 const AdminSchema = new mongoose.Schema({
     // Schema definition here
     username: username,
-    password: password
+    password: password,
+    courses: [Course]
 });
 
 const UserSchema = new mongoose.Schema({
     // Schema definition here
     username: username,
-    password: password
+    password: password,
+    courses: [Course]
 });
 
 const Admin = mongoose.model('Admin', AdminSchema);
