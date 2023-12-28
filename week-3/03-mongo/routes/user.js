@@ -16,23 +16,28 @@ router.post('/signup',async (req, res) => {
         {username: username, password:password}
     );
     //if they are return responses
-    if(oldUser){
+    if(oldUser.length !== 0){
         return res.status(400).json({
             message: 'the username is already in use'
         });
     }
     else{
         //else create a new user
-        const newUser = new User({
-            username: username,
-            password: password
-        });
-        newUser = await newUser.save();
-        newUser.then(()=>{
+        try{
+            let newUser = new User({
+                username: username,
+                password: password
+            });
+            newUser = await newUser.save();
             return res.status(200).json({
                 message: 'User created successfully'
             });
-        });
+        }
+        catch(error){
+            return res.status(500).json({
+                message: 'Internal error'
+            });
+        }
     }
 });
 
@@ -42,10 +47,15 @@ router.post('/signup',async (req, res) => {
 //   Output: { courses: [ { id: 1, title: 'course title', description: 'course description', price: 100, imageLink: 'https://linktoimage.com', published: true }, ... ] }
 router.get('/courses', async (req, res) => {
     // Implement listing all courses logic
-    const allCourses = await Course.find({published:true});
-    allCourses.then((courses)=>{
+    try{
+        const courses = await Course.find({published:true});
         return res.status(200).json({courses: courses});
-    });
+    }
+    catch(error){
+        return res.status(500).json({
+            message: 'unauthorized'
+        })
+    }
 });
 
 // - POST /users/courses/:courseId
@@ -57,18 +67,25 @@ router.post('/courses/:courseId', userMiddleware, async (req, res) => {
     const username = req.headers['username'];
     const password = req.headers['password'];
     const courseId = req.params['courseId'];
-    const purchasingCourse = await Course
-        .find({purchased: true, _id: courseId });
-    //add to user courses array
-    const purchasedCourse = async User.updateOne(
-        {username:username, password: password},
-        {$push: purchasingCourse}
-    );
-    purchasedCourse.then(()=>{
-        return res.status(200).json({
-            message: 'Course purchased successfully'
+    try{
+        const purchasingCourse = await Course.findById(courseId);
+        //add to user courses array
+        const purchasedCourse = User.updateOne(
+            {username: username, password: password},
+            {$push: {courses: purchasingCourse }}
+        );
+        purchasedCourse.then(()=>{
+            return res.status(200).json(
+                {message: 'Course purchased successfully' }
+            )
+        })
+    }
+    catch(error){
+        return res.status(500).json({
+            message: 'Error purchasing course',
+            error: error.message
         });
-    });
+    }
 });
 
 // - GET /users/purchasedCourses
@@ -79,14 +96,21 @@ router.get('/purchasedCourses', userMiddleware, async (req, res) => {
     // Implement fetching purchased courses logic
     const username = req.headers['username'];
     const password = req.headers['password'];
-    const purchasedCourses = await User.findOne(
-        {username: username, password: password}
-    );
-    purchasedCourses.then((courses)=>{
+    try{
+        const user = await User.findOne(
+            {username: username, password: password}
+        );
+        console.log(user);
         return res.status(200).json({
-            purchasedCourses: courses
+            purchasedCourses: user.courses
         });
-    });
+    }
+    catch(error){
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        })
+    }
 });
 
 module.exports = router
